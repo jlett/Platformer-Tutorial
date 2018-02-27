@@ -14,8 +14,6 @@ player = {
     yVelocity = 0,
     maxYVelocity = 1000,
     maxSpeed = 400,
-    acceleration = 2,
-
     jumpStrength = 80,
     gravity = 2400,
     jumpTime = 0,
@@ -45,18 +43,11 @@ function love.update(dt)
 
     --Get left/right input
     if love.keyboard.isDown("left", "a") then
-        player.xVelocity = player.xVelocity + (-player.maxSpeed*player.acceleration*dt)
+        player.xVelocity = -player.maxSpeed
     elseif love.keyboard.isDown("right", "d") then
-        player.xVelocity = player.xVelocity + (player.maxSpeed*player.acceleration*dt)
+        player.xVelocity = player.maxSpeed
     else
         player.xVelocity = 0
-    end
-
-    --Cap our velocity
-    if player.xVelocity > player.maxSpeed then
-        player.xVelocity = player.maxSpeed
-    elseif player.xVelocity < -player.maxSpeed then
-        player.xVelocity = -player.maxSpeed
     end
 
     --Get jump input, starts jump only when grounded
