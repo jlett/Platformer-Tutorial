@@ -1,6 +1,5 @@
 bump = require 'lib.bump.bump'
 cupid = require 'lib.cupid'
-flux = require 'lib.flux'
 
 world = nil -- storage place for bump
 
@@ -15,19 +14,14 @@ player = {
     yVelocity = 0,
     maxYVelocity = 1000,
     maxSpeed = 400,
+    acceleration = 2,
 
-    accelTween = nil,
-    accelTime = 1,
-    decelTime = .3,
-
-    gravity = 3000,
-    jumpSpeed = 600,
-    jumpTime = .5,
-    jumpTween = nil,
-    jumpForgiveness = 1,
+    jumpStrength = 80,
+    gravity = 2400,
+    jumpTime = 0,
+    maxJumpTime = 8,
 
     isJumping = false,
-    ungroundedTime = 0,
     isGrounded = false,
 
     animation = nil,
@@ -50,13 +44,33 @@ end
 
 function love.update(dt)
 
-    flux.update(dt)
+    --Get left/right input
+    if love.keyboard.isDown("left", "a") then
+        player.xVelocity = player.xVelocity + (-player.maxSpeed*player.acceleration*dt)
+    elseif love.keyboard.isDown("right", "d") then
+        player.xVelocity = player.xVelocity + (player.maxSpeed*player.acceleration*dt)
+    else
+        player.xVelocity = 0
+    end
 
     --Cap our velocity
     if player.xVelocity > player.maxSpeed then
         player.xVelocity = player.maxSpeed
     elseif player.xVelocity < -player.maxSpeed then
         player.xVelocity = -player.maxSpeed
+    end
+
+    --Get jump input, starts jump only when grounded
+    if love.keyboard.isDown("up", "w") and player.isGrounded then
+        player.isJumping = true
+    end
+
+    --calculate jump
+    if love.keyboard.isDown("up", "w") and player.isJumping and player.jumpTime < player.maxJumpTime then
+        player.jumpTime = player.jumpTime + player.jumpStrength*dt
+        player.yVelocity = -player.jumpStrength*player.jumpTime
+    else
+        player.isJumping = false
     end
 
     --Apply gravity (only while not jumping)
@@ -80,27 +94,16 @@ function love.update(dt)
         if coll.normal.y < 0 then
             player.isGrounded = true
             player.yVelocity = 0
-            player.ungroundedTime = 0
-        end
-        
-        if coll.normal.y > 0 then
+        elseif coll.normal.y > 0 then
             --end jump when head bump
             player.isJumping = false
-            if player.jumpTween ~= nil then
-                player.jumpTween:stop()
-            end
             player.yVelocity = 0
         end
     end
-    
-    --jump forgiveness
-    if player.isGrounded == false then
-        if player.ungroundedTime > player.jumpForgiveness then
-            player.isGrounded = false
-        else
-            player.isGrounded = true
-            player.ungroundedTime = player.ungroundedTime + dt
-        end
+
+    --reset jump timer when on ground
+    if player.isGrounded then
+        player.jumpTime = 0
     end
 
     --update animation sheet
@@ -115,33 +118,6 @@ end
 function love.keypressed(key)
     if key == "escape" then
         love.event.push("quit");
-    elseif key == "right" or key == "d" then
-        local speedPercent = (player.maxSpeed - player.xVelocity)/player.maxSpeed
-        player.accelTween = flux.to(player, player.accelTime*speedPercent, {xVelocity = player.maxSpeed}):ease("circout")
-    elseif key == "left" or key == "a" then
-        local speedPercent = math.abs((-player.maxSpeed - player.xVelocity)/player.maxSpeed)
-        player.accelTween = flux.to(player, player.accelTime*speedPercent, {xVelocity = -player.maxSpeed}):ease("circout")
-    elseif (key == "up" or key == "w") and player.isGrounded then
-        player.isJumping = true
-        player.isGrounded = false
-        player.yVelocity = -player.jumpSpeed
-        player.jumpTween = flux.to(player, player.jumpTime, {yVelocity = 0}):ease("quartin"):oncomplete(function() player.isJumping = false end)
-    end
-end
-
-function love.keyreleased(key)
-    if key == "right" or key == "d" or key == "left" or key == "a" then
-        --make sure we didnt release while still holding a different movement button
-        if not love.keyboard.isDown("right", "d", "left", "a") then
-            local speedPercent = math.abs(player.xVelocity/player.maxSpeed)
-            player.accelTween = flux.to(player, player.decelTime*speedPercent, {xVelocity = 0}):ease("circout")
-        end
-    elseif key == "w" or key == "up" then
-        --sanity check, covers a small edge case
-        if player.jumpTween ~= nil then
-            player.jumpTween:stop()
-        end
-        player.isJumping = false
     end
 end
 

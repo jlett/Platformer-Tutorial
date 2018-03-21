@@ -14,6 +14,8 @@ player = {
     yVelocity = 0,
     maxYVelocity = 1000,
     maxSpeed = 400,
+    acceleration = 2,
+
     jumpStrength = 80,
     gravity = 2400,
     jumpTime = 0,
@@ -22,17 +24,18 @@ player = {
     isJumping = false,
     isGrounded = false,
 
-    img = ni
+    animation = nil,
+    moveLeft = false
 }
 
 function love.load()
 
-    player.img = love.graphics.newImage('assets/char.png')
+    player.animation = newAnimation(love.graphics.newImage('assets/oldHero.png'), 16, 18, 1)
 
     -- Setup bump
     world = bump.newWorld(16)  -- 16 is our tile size
 
-    world:add(player, player.x, player.y, player.img:getWidth(), player.img:getHeight())
+    world:add(player, player.x, player.y, 16*4, 18*4)
 
     -- Draw a level
     world:add(ground_0, 120, 360, 640, 16)
@@ -95,6 +98,14 @@ function love.update(dt)
     if player.isGrounded then
         player.jumpTime = 0
     end
+
+    --update animation sheet
+    local percentVel = math.abs(player.xVelocity / player.maxSpeed)
+    player.moveLeft = player.xVelocity < 0
+    player.animation.currentTime = player.animation.currentTime + dt*percentVel
+    if player.animation.currentTime >= player.animation.duration then
+        player.animation.currentTime = player.animation.currentTime - player.animation.duration
+    end
 end
 
 function love.keypressed(key)
@@ -103,9 +114,30 @@ function love.keypressed(key)
     end
 end
 
+function newAnimation(image, width, height, duration)
+    local animation = {}
+    animation.spriteSheet = image;
+    animation.quads = {};
+ 
+    for y = 0, image:getHeight() - height, height do
+        for x = 0, image:getWidth() - width, width do
+            table.insert(animation.quads, love.graphics.newQuad(x, y, width, height, image:getDimensions()))
+        end
+    end
+ 
+    animation.duration = duration or 1
+    animation.currentTime = 0
+ 
+    return animation
+end
+
 function love.draw(dt)
     love.graphics.print("Current FPS: "..tostring(love.timer.getFPS( )), 10, 10)
-    love.graphics.draw(player.img, player.x, player.y)
+    --love.graphics.draw(player.img, player.x, player.y)
+    local spriteNum = math.floor(player.animation.currentTime / player.animation.duration * #player.animation.quads) + 1
+    local leftMult = player.moveLeft and -1 or 1
+    local leftOffset = player.moveLeft and 16*4 or 0
+    love.graphics.draw(player.animation.spriteSheet, player.animation.quads[spriteNum], player.x + leftOffset, player.y, 0, leftMult*4, 4)
     love.graphics.rectangle('fill', world:getRect(ground_0))
     love.graphics.rectangle('fill', world:getRect(ground_1))
 end

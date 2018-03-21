@@ -24,10 +24,8 @@ player = {
     jumpSpeed = 600,
     jumpTime = .5,
     jumpTween = nil,
-    jumpForgiveness = 1,
 
     isJumping = false,
-    ungroundedTime = 0,
     isGrounded = false,
 
     animation = nil,
@@ -80,7 +78,8 @@ function love.update(dt)
         if coll.normal.y < 0 then
             player.isGrounded = true
             player.yVelocity = 0
-            player.ungroundedTime = 0
+        else
+            player.isGrounded = false
         end
         
         if coll.normal.y > 0 then
@@ -90,16 +89,6 @@ function love.update(dt)
                 player.jumpTween:stop()
             end
             player.yVelocity = 0
-        end
-    end
-    
-    --jump forgiveness
-    if player.isGrounded == false then
-        if player.ungroundedTime > player.jumpForgiveness then
-            player.isGrounded = false
-        else
-            player.isGrounded = true
-            player.ungroundedTime = player.ungroundedTime + dt
         end
     end
 
